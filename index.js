@@ -1,54 +1,21 @@
-// Importaciones
+
 const express = require("express");
 const app = express();
 const exphbs = require("express-handlebars");
 const expressFileUpload = require("express-fileupload");
 const jwt = require("jsonwebtoken");
-const secretKey = "Shhhh";
+const secretKey = "Shicleto";
+const fs = require('fs');
+
+const { insertarSkater, consultarSkaters, editar, editarStatus, eliminar, consultaFoto } = require('./db')
 
 
-const { insertarSkater, consultarSkaters, editar, eliminar, insertarTrans, consultaTrans } = require('./db')
+let skaters = []
 
 
-let skaters = [
-    {
-        id: 1,
-        email: 'kb@fbi.com',
-        nombre: 'Kill Bill',
-        password: 'me',
-        anos_experiencia: 4,
-        especialidad: "FullStack",
-        foto: "/uploads/Danny.jpg",
-        estado: false
-    },
-    {
-        id: 2,
-        email: 'fg@fbi.com',
-        nombre: 'Forrest Gump',
-        password: 'you',
-        anos_experiencia: 6,
-        especialidad: "DBA",
-        foto: "/uploads/Danny.jpg",
-        estado: true
-    },
-    {
-        id: 3,
-        email: 'jm@fbi.com',
-        nombre: 'Jonh Meyers',
-        password: 'he',
-        anos_experiencia: 8,
-        especialidad: "FrontEnd",
-        foto: "/uploads/Danny.jpg",
-        estado: true
-    },
-]
+app.listen(3000, () => console.log("Servidor arriba en http://localhost:3000/"));
 
 
-
-// Server
-app.listen(3000, () => console.log("Servidor encendido PORT 3000!"));
-
-// Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -75,9 +42,7 @@ app.set("view engine", "handlebars");
 // Rutas asociadas a los handlebars
 app.get("/", async (req, res) => {
     try {
-        // console.log("funciona: ", { skaters });
         skaters = await consultarSkaters()
-        // console.log("no funciona", skaters)
 
         res.render("Home", { skaters });
     } catch (e) {
@@ -113,7 +78,9 @@ app.get("/login", (req, res) => {
 
 app.post("/login", async (req, res) => {
     const { email, password } = req.body
+
     try {
+        skaters = await consultarSkaters()
         const skater = skaters.find((s) => s.email == email &&
             s.password == password);
 
@@ -133,6 +100,8 @@ app.post("/login", async (req, res) => {
 
 app.get("/Admin", async (req, res) => {
     try {
+        skaters = await consultarSkaters()
+        console.log(skaters)
         res.render("Admin", { skaters });
     } catch (e) {
         res.status(500).send({
@@ -168,11 +137,7 @@ app.post("/skaters", async (req, res) => {
     const pathPhoto = `/uploads/${name}`
 
     const datos = [skater.email, skater.nombre, skater.password, skater.anos_experiencia, skater.especialidad, pathPhoto, false]
-    // console.log(datos);
     insertarSkater(datos)
-    // console.log("Valor del req.body: ", skater);
-    // console.log("Nombre de imagen: ", name);
-    // console.log("Ruta donde subir la imagen: ", pathPhoto);
 
 
     foto.mv(`${__dirname}/public${pathPhoto}`, async (err) => {
@@ -193,18 +158,12 @@ app.post("/skaters", async (req, res) => {
 })
 
 app.put("/skaters", async (req, res) => {
-    const { id, nombre, anos_experiencia, especialidad } = req.body;
-    console.log("Valor del body: ", id, nombre, anos_experiencia, especialidad);
     try {
-        const skaterB = skaters.findIndex((s) => s.id == id);
-        //        if (skaterB) {
-        skaters[skaterB].nombre = nombre;
-        skaters[skaterB].anos_experiencia = anos_experiencia;
-        skaters[skaterB].especialidad = especialidad;
-        res.status(200).send("Datos actualizados con éxito");
-        // } else {
-        //     res.status(400).send("No existe este Skater");
-        // }
+        const { id, nombre, password, anos_experiencia, especialidad } = req.body;
+
+        const datos = [id, nombre, password, anos_experiencia, especialidad]
+
+        editar(datos)
 
     } catch (e) {
         res.status(500).send({
@@ -217,16 +176,12 @@ app.put("/skaters", async (req, res) => {
 app.put("/skaters/status/:id", async (req, res) => {
     const { id } = req.params;
     const { estado } = req.body;
-    console.log("Valor de estado recibido por body: ", estado)
     try {
-        const skaterB = skaters.findIndex((s) => s.id == id);
 
-        //if (skaterB !== -1) {
-        skaters[skaterB].estado = estado;
+        editarStatus([id, estado])
+
         res.status(200).send("Estado Actualizado con éxito");
-        // } else {
-        //     res.status(400).send("No existe este Skater");
-        // }
+
 
     } catch (e) {
         res.status(500).send({
@@ -237,17 +192,20 @@ app.put("/skaters/status/:id", async (req, res) => {
 });
 
 app.delete("/skaters/:id", async (req, res) => {
-    const { id } = req.params
     try {
-        const skaterB = skaters.findIndex((s) => s.id == id);
-
-        if (skaterB !== -1) {
-            skaters.splice(skaterB, 1);
-            res.status(200).send("Skater Eliminado con éxito");
-        } else {
-            res.status(400).send("No existe este Skater");
-        }
-
+        const { id } = req.params
+        const foto = await consultaFoto(id)
+        console.log(foto)
+        const path = `./public${foto[0].foto}`
+        eliminar(id)
+        fs.unlink(path, (err) => {
+            if (err) {
+                console.error('Error al eliminar el archivo:', err);
+                return;
+            }
+            console.log('Archivo eliminado exitosamente');
+        });
+        res.status(200).send("Skater Eliminado con éxito");
     } catch (e) {
         res.status(500).send({
             error: `Algo salió mal... ${e}`,

@@ -14,7 +14,8 @@
             </div>
             <div class="form-group col-12 col-sm-6">
                 <label>Password</label>
-                <input name="password" type="password" class="form-control m-auto" disabled value="{{skater.password}}" />
+                <input name="password" type="password" class="form-control m-auto" disabled
+                    value="{{skater.password}}" />
             </div>
             <div class="form-group col-12 col-sm-6">
                 <label>Repita la password</label>
@@ -22,7 +23,7 @@
             </div>
             <div class="form-group col-12 col-sm-6">
                 <label>Años de experiencia</label>
-                <input name="años_experiencia" class="form-control m-auto" value="{{skater.anos_experiencia}}" />
+                <input name="anos_experiencia" class="form-control m-auto" value="{{skater.anos_experiencia}}" />
             </div>
             <div class="form-group col-12 col-sm-6">
                 <label>Especialidad</label>
@@ -62,20 +63,23 @@
     form.addEventListener("submit", async (e) => {
         e.preventDefault()
 
-        let [,nombre,,,años_experiencia, especialidad] = document.querySelectorAll("input")
-        
-        console.log("Valores de Input: ", nombre.value, años_experiencia.value, 
-        especialidad.value)
+        let [, nombre, password, , anos_experiencia, especialidad] = document.querySelectorAll("input")
+
+        console.log("Valores de Input: ", nombre.value, anos_experiencia.value,
+            especialidad.value)
 
         nombre = nombre.value
-        anos_experiencia = años_experiencia.value
+        password = password.value
+        anos_experiencia = anos_experiencia.value
         especialidad = especialidad.value
         const skater = {
             id,
             nombre,
+            password,
             anos_experiencia,
             especialidad
         }
+        console.log("skater perfil:", skater)
         try {
             await axios.put("/skaters", skater)
             alert("Datos actualizados con éxito")

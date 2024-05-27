@@ -28,7 +28,16 @@ const consultarSkaters = async () => {
 
 const editar = async (datos) => {
     const consulta = {
-        text: "UPDATE usuarios SET nombre=$2, balance=$3 WHERE id=$1 RETURNING *",
+        text: "UPDATE skaters SET nombre=$2, password=$3, anos_experiencia=$4, especialidad=$5 WHERE id=$1 RETURNING *",
+        values: datos
+    }
+    const result = await pool.query(consulta);
+    return result;
+}
+
+const editarStatus = async (datos) => {
+    const consulta = {
+        text: "UPDATE skaters SET estado=$2 WHERE id=$1 RETURNING *",
         values: datos
     }
     const result = await pool.query(consulta);
@@ -36,15 +45,14 @@ const editar = async (datos) => {
 }
 
 const eliminar = async (id) => {
-    const result = await pool.query("DELETE FROM usuarios WHERE id=$1 RETURNING *", [id]);
+    const result = await pool.query("DELETE FROM skaters WHERE id=$1 RETURNING *", [id]);
 
 }
 
 
-const consultaTrans = async (datos) => {
+const consultaFoto = async (datos) => {
     const consulta = {
-        text: "SELECT t.fecha, u.nombre AS emisor, r.nombre, t.monto FROM transferencias t INNER JOIN usuarios u ON u.id = t.emisor INNER JOIN usuarios r ON r.id = t.receptor",
-        rowMode: 'array'
+        text: `SELECT foto FROM skaters WHERE id=${datos}`
     }
     const result = await pool.query(consulta)
 
@@ -53,34 +61,4 @@ const consultaTrans = async (datos) => {
 
 
 
-const insertarTrans = async (datos) => {
-    // datos -> emisor, receptor, monto
-
-    console.log("datos trans: ", datos);
-    await pool.query("BEGIN");
-
-
-    const descontar = {
-        text: "UPDATE usuarios SET balance = balance - $2 WHERE id=$1",
-        values: [datos[0], datos[2]]
-    };
-    await pool.query(descontar);
-
-    const acreditar = {
-        text: "UPDATE usuarios SET balance = balance + $2 WHERE id=$1",
-        values: [datos[1], datos[2]]
-    };
-    await pool.query(acreditar);
-
-    const insercion = {
-        text: "INSERT INTO transferencias (emisor, receptor, monto, fecha) VALUES ($1, $2, $3, NOW()) RETURNING *",
-        values: datos
-    }
-    const result = await pool.query(insercion)
-
-    await pool.query("COMMIT");
-
-    return result
-}
-
-module.exports = { insertarSkater, consultarSkaters, editar, eliminar, insertarTrans, consultaTrans };
+module.exports = { insertarSkater, consultarSkaters, editar, editarStatus, eliminar, consultaFoto };
